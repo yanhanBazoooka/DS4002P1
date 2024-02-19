@@ -1,0 +1,95 @@
+---
+title: "NVDA and LCID Stock Merge"
+author: "Lura Hayes"
+date: "2024-02-13"
+output: html_document
+---
+This file cleans the raw files containing data about stock information and it merges them into one .csv file with date, LCID daily change percent, and NVDA 
+daily percent change. It should be noted that the date variable for each file must be converted into a date data type to run analysis. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+NVDA <- read.csv("NVDA_Stock_Trends.csv")
+NVDA
+```
+```{r}
+NVDA$Date <- as.Date(NVDA$Date, format= "%m/%d/%Y")
+NVDA
+```
+
+```{r}
+NVDA <- NVDA[(NVDA$Date> "2023-01-03" & NVDA$Date < "2023-12-29"),]
+head(NVDA)
+
+```
+
+
+
+```{r}
+NVDA$Close.Last <- as.numeric(gsub("\\$", "", NVDA$Close.Last))
+
+head(NVDA)
+```
+
+```{r}
+NVDA$Open <- as.numeric(gsub("\\$", "", NVDA$Open))
+
+head(NVDA)
+```
+```{r}
+NVDA$NVDA_daily_percent <- ((NVDA$Close.Last - NVDA$Open) / NVDA$Open) * 100
+NVDA
+```
+
+```{r}
+LCID <- read.csv("LCID_Stock_Trends.csv")
+tail(LCID)
+```
+
+```{r}
+LCID$date <- as.Date(LCID$date, format= "%m/%d/%y")
+LCID
+```
+
+```{r}
+LCID <- LCID[(LCID$date> "2023-01-03" & LCID$date < "2023-12-29"),]
+LCID
+```
+
+```{r}
+LCID$LCID_daily_percent <- ((LCID$close - LCID$open) / LCID$open) * 100
+head(LCID)
+```
+
+```{r}
+subset_NVDA <- NVDA[, c("Date", "NVDA_daily_percent")]
+subset_LCID <- LCID[, c("date", "LCID_daily_percent")]
+
+head(subset_NVDA)
+head(subset_LCID)
+```
+
+```{r}
+ colnames(subset_LCID)[1] <- "Date"
+head(subset_LCID)
+```
+
+```{r}
+daily_stock_percent_changes <- merge(subset_NVDA, subset_LCID, by = "Date")
+
+daily_stock_percent_changes
+```
+
+```{r}
+write.table(daily_stock_percent_changes, file = '/Users/lurahayes/Desktop/DSProj1/daily_stock_percent_changes.csv', col.names = TRUE,
+             row.names = FALSE, sep = ",")
+```
+
