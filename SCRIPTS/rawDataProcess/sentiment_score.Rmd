@@ -1,0 +1,77 @@
+---
+title: "Sentiment_score"
+output: html_document
+date: "2024-02-15"
+---
+
+install.packages("vader")
+```{r}
+library(vader)
+library(readxl)
+```
+
+```{r}
+NVDA <- read_xlsx("/Users/lm/Desktop/DS4002/NVDA_updated.xlsx")
+head(NVDA)
+LCID <- read_xlsx("/Users/lm/Desktop/DS4002/LCID_updated.xlsx")
+head(LCID)
+```
+
+```{r}
+NVDA <- NVDA %>% filter(!is.na(`Published Date`))
+LCID <- LCID %>% filter(!is.na(`Published Date`))
+```
+
+
+```{r}
+get_vader("Nvidia is partnering with countries to improve their AI infrastructure.")
+```
+
+```{r}
+get_vader("At a cursory look at premium electric vehicle manufacturer Lucid Group (NASDAQ: LCID ), it's easy to become discouraged. Over the past 52 weeks, its equity shares suffered a devastating loss of more than 72%.")
+
+ss = get_vader("At a cursory look at premium electric vehicle manufacturer Lucid Group (NASDAQ: LCID ), it's easy to become discouraged. Over the past 52 weeks, its equity shares suffered a devastating loss of more than 72%.")['compound'] # the positive score
+```
+
+```{r}
+NVDA$score <- numeric(nrow(NVDA))
+for (i in seq_along(NVDA$Text)) {
+  NVDA$score[i] <- get_vader(NVDA$Text[i])['compound']
+}
+```
+
+```{r}
+LCID$score <- numeric(nrow(LCID))
+for (i in seq_along(LCID$Text)) {
+  LCID$score[i] <- get_vader(LCID$Text[i])['compound']
+}
+```
+
+```{r}
+NVDA$score <- as.numeric(NVDA$score)
+LCID$score <- as.numeric(LCID$score)
+NVDA_score <- NVDA %>%
+  group_by(`Published Date`) %>%
+  summarise(average_score = mean(score, na.rm = TRUE))
+
+LCID_score <- LCID %>%
+  group_by(`Published Date`) %>%
+  summarise(average_score = mean(score, na.rm = TRUE))
+```
+
+```{r}
+library(lubridate)
+score <- full_join(NVDA_score, LCID_score, by = "Published Date") %>%
+  rename(NVDA = average_score.x, LCID = average_score.y)
+
+score$`Published Date` <- as.Date(score$`Published Date`)
+
+score$`Published Date` <- score$`Published Date` + days(1)
+
+head(score)
+```
+
+
+```{r}
+write.xlsx(score, file = "sentiment_score.xlsx")
+```
